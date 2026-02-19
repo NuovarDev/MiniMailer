@@ -4,7 +4,7 @@ Mini Mailer is a simple SMTP server that forwards mail over HTTP to Mailgun, Pos
 
 Mini Mailer does not support attachments and is designed to run on an internal network only (e.g. `minimailer.railway.internal`), as it does not use TLS.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/ewkKJ-?referralCode=EXiHsJ&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/mini-mailer?referralCode=EXiHsJ)
 
 ## What it does
 
