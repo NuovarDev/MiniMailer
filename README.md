@@ -8,7 +8,7 @@ Mini Mailer does not support attachments and is designed to run on an internal n
 
 ## What it does
 
-- Listens for SMTP connections (e.g. on port **2525**).
+- Listens for SMTP connections (e.g. on port **25**).
 - Requires SMTP **username + password**.
 - Uses the **password** as that provider’s **API key/token**.
 - Forwards each message to the right provider over HTTPS.
@@ -18,11 +18,10 @@ Mini Mailer does not support attachments and is designed to run on an internal n
 | Setting   | Default   | Env var      |
 |----------|-----------|--------------|
 | Host     | `0.0.0.0` | `LISTEN_HOST` |
-| Port     | `2525`    | `LISTEN_PORT` |
-| Health   | `3000`    | `HEALTH_PORT` |
+| Health   | `80`    | `HEALTH_PORT` |
 
-- Use **port 2525** (or your configured port) for SMTP.
-- Use **port 3000** (or your configured port) for the health check.
+- Use **port 25** (or your configured port) for SMTP.
+- Use **port 80** (or your configured port) for the health check.
 
 ## Authentication
 
@@ -48,14 +47,14 @@ For Postmark and MailerSend, you can use any username.
 Configure your app or SMTP client to use the relay like this:
 
 - **Host**: your Mini Mailer host (e.g. `minimailer.railway.internal`).
-- **Port**: `2525` (or `LISTEN_PORT`).
+- **Port**: `25` (or `LISTEN_PORT`).
 - **Username**: e.g. `relay@mg.yourdomain.com` or `noreply@yourdomain.com` (used for routing and, for Mailgun, domain).
 - **Password**: the corresponding provider API key or token (Mailgun Sending Key, Postmark Server API Token, or MailerSend API Token).
-- **Encryption**: none by default; use STARTTLS or put the relay behind TLS if required.
+- **Encryption**: none
 
 ## Health check
 
-A small HTTP server runs for readiness/liveness probes (e.g. Railway). It listens on `HEALTH_PORT` (default `3000`).
+A small HTTP server runs for readiness/liveness probes (e.g. Railway). It listens on `HEALTH_PORT` (default `80`).
 
 - **GET `/health`** or **GET `/`** → `200` and `{"status":"ok"}`.
 
@@ -79,5 +78,4 @@ Optional env vars (for logging and listen address):
 
 - `LOG_LEVEL` – e.g. `info`, `debug`
 - `LISTEN_HOST` – default `0.0.0.0`
-- `LISTEN_PORT` – default `2525` (SMTP)
-- `HEALTH_PORT` – default `3000` (HTTP health check).
+- `HEALTH_PORT` – default `80` (HTTP health check).

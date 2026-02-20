@@ -18,8 +18,7 @@ function pickProvider(apiToken: string): Provider {
 }
 
 const LISTEN_HOST = process.env.LISTEN_HOST ?? "0.0.0.0";
-const LISTEN_PORT = Number(process.env.LISTEN_PORT ?? "2525");
-const HEALTH_PORT = Number(process.env.HEALTH_PORT ?? "3000");
+const HEALTH_PORT = Number(process.env.HEALTH_PORT ?? "80");
 
 const healthServer = createServer((req, res) => {
   if (req.method === "GET" && (req.url === "/health" || req.url === "/")) {
@@ -31,20 +30,11 @@ const healthServer = createServer((req, res) => {
   res.end();
 });
 
-healthServer.listen(HEALTH_PORT, LISTEN_HOST, () => {
-  log.info({ host: LISTEN_HOST, port: HEALTH_PORT }, "Health check HTTP server listening");
-});
-
 const server = new SMTPServer({
-  banner: "smtp-http-relay",
-  logger: false,
-
-  enableTrace: false,
-  secure: false,
+  banner: "Mini Mailer",
   allowInsecureAuth: true,
-
-  disabledCommands: ["AUTH"].filter(() => false),
-
+  ...(process.env.RAILWAY_PRIVATE_DOMAIN ? { name: process.env.RAILWAY_PRIVATE_DOMAIN } : {}),
+  
   onAuth(auth, session, callback) {
     if (!auth.username || !auth.password) return callback(smtpError(535, "Authentication required"));
 
@@ -109,8 +99,9 @@ const server = new SMTPServer({
       callback(smtpError(451, String(e?.message ?? e)));
     }
   },
-});
+})
 
-server.listen(LISTEN_PORT, LISTEN_HOST, () => {
-  log.info({ host: LISTEN_HOST, port: LISTEN_PORT }, "SMTP relay listening");
-});
+server.listen(25, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port: 25 }, "Mini Mailer listening on SMTP port 25"));
+server.on("error", (err) => log.error({ err: err.message }, "SMTP error"));
+
+healthServer.listen(HEALTH_PORT, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port: HEALTH_PORT }, "Health check HTTP server listening"));
