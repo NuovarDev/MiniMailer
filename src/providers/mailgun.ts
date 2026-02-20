@@ -1,11 +1,10 @@
 import FormData from "form-data";
-import { formatAddressList, log, domainFromAuthUser } from "../helpers/index.js";
+import { formatAddressList, domainFromAuthUser } from "../helpers/index.js";
 import { request } from "undici";
 import type { Email } from "postal-mime";
 
 export async function sendViaMailgun(rawMime: Buffer, parsed: Email, authUser: string, key: string) {
   const domain = domainFromAuthUser(authUser);
-  log.info({ domain, authUser }, "Sending email via Mailgun");
 
   const url = `https://api.mailgun.net/v3/${encodeURIComponent(domain)}/messages.mime`;
 

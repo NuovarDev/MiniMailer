@@ -8,7 +8,7 @@ Mini Mailer does not support attachments and is designed to run on an internal n
 
 ## What it does
 
-- Listens for SMTP connections (e.g. on port **25**).
+- Listens for SMTP connections (e.g. on port **25**, **2525**, or **587**).
 - Requires SMTP **username + password**.
 - Uses the **password** as that provider’s **API key/token**.
 - Forwards each message to the right provider over HTTPS.
@@ -20,7 +20,7 @@ Mini Mailer does not support attachments and is designed to run on an internal n
 | Host     | `0.0.0.0` | `LISTEN_HOST` |
 | Health   | `80`    | `HEALTH_PORT` |
 
-- Use **port 25** (or your configured port) for SMTP.
+- Use **port 25**, **2525**, or **587** (or your configured port) for SMTP.
 - Use **port 80** (or your configured port) for the health check.
 
 ## Authentication
@@ -47,7 +47,7 @@ For Postmark and MailerSend, you can use any username.
 Configure your app or SMTP client to use the relay like this:
 
 - **Host**: your Mini Mailer host (e.g. `mini-mailer.railway.internal`).
-- **Port**: `25` (or `LISTEN_PORT`).
+- **Port**: `25`, `2525`, or `587`.
 - **Username**: e.g. `relay@mg.yourdomain.com` or `noreply@yourdomain.com` (used for routing and, for Mailgun, domain).
 - **Password**: the corresponding provider API key or token (Mailgun Sending Key, Postmark Server API Token, or MailerSend API Token).
 - **Encryption**: none

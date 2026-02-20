@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { SMTPServer } from "smtp-server";
+import { SMTPServer, SMTPServerOptions } from "smtp-server";
 import PostalMime from "postal-mime";
 import { formatAddress, formatAddressList, smtpError, log } from "./helpers/index.js";
 import { sendViaPostmark } from "./providers/postmark.js";
@@ -30,7 +30,7 @@ const healthServer = createServer((req, res) => {
   res.end();
 });
 
-const server = new SMTPServer({
+const serverOptions = {
   banner: "Mini Mailer",
   allowInsecureAuth: true,
   ...(process.env.RAILWAY_PRIVATE_DOMAIN ? { name: process.env.RAILWAY_PRIVATE_DOMAIN } : {}),
@@ -64,6 +64,7 @@ const server = new SMTPServer({
 
         log.info(
           {
+            port: session.localPort,
             provider,
             authUser,
             from: formatAddress(parsed.from),
@@ -83,10 +84,10 @@ const server = new SMTPServer({
           else if (provider === "mailersend") result = await sendViaMailerSend(rawMime, apiToken);
           else result = await sendViaMailgun(rawMime, parsed, authUser, apiToken);
 
-          log.info({ provider, result }, "forwarded message");
+          log.info({ provider, result, port: session.localPort }, "forwarded message");
           callback(); // 250 OK
         } catch (e: any) {
-          log.error({ provider, err: String(e?.message ?? e) }, "forward failed");
+          log.error({ provider, err: String(e?.message ?? e), port: session.localPort }, "forward failed");
 
           // If provider is down / timeout / 5xx, prefer 451 (transient) so SMTP client retries
           // If provider rejects (4xx), can treat as permanent 550
@@ -99,9 +100,14 @@ const server = new SMTPServer({
       callback(smtpError(451, String(e?.message ?? e)));
     }
   },
-})
+} as SMTPServerOptions;
 
-server.listen(25, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port: 25 }, "Mini Mailer listening on SMTP port 25"));
-server.on("error", (err) => log.error({ err: err.message }, "SMTP error"));
+const servers = [25, 2525, 587];
+
+for (const port of servers) {
+  const server = new SMTPServer(serverOptions);
+  server.listen(port, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port }, `Mini Mailer listening on SMTP port ${port}`));
+  server.on("error", (err) => log.error({ err: err.message, port }, "SMTP error"));
+}
 
 healthServer.listen(HEALTH_PORT, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port: HEALTH_PORT }, "Health check HTTP server listening"));

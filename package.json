@@ -7,7 +7,7 @@
     "start": "node dist/index.js",
     "dev": "npx tsx src/index.ts",
     "docker:build": "docker build -t mailrelay .",
-    "docker:run": "docker run -p 25:25 -p 80:80 mailrelay"
+    "docker:run": "docker run -p 25:25 -p 2525:2525 -p 587:587 -p 80:80 mailrelay"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
