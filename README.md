@@ -2,7 +2,7 @@
 
 Mini Mailer is a simple SMTP server that forwards mail over HTTP to Mailgun, Postmark, or MailerSend. For use as an SMTP gateway on platforms (e.g. [Railway](https://railway.app)) that restrict outbound SMTP ports.
 
-Mini Mailer does not support attachments and is designed to run on an internal network only (e.g. `minimailer.railway.internal`), as it does not use TLS.
+Mini Mailer does not support attachments and is designed to run on an internal network only (e.g. `mini-mailer.railway.internal`), as it does not use TLS.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/mini-mailer?referralCode=EXiHsJ)
 
@@ -46,7 +46,7 @@ For Postmark and MailerSend, you can use any username.
 
 Configure your app or SMTP client to use the relay like this:
 
-- **Host**: your Mini Mailer host (e.g. `minimailer.railway.internal`).
+- **Host**: your Mini Mailer host (e.g. `mini-mailer.railway.internal`).
 - **Port**: `25` (or `LISTEN_PORT`).
 - **Username**: e.g. `relay@mg.yourdomain.com` or `noreply@yourdomain.com` (used for routing and, for Mailgun, domain).
 - **Password**: the corresponding provider API key or token (Mailgun Sending Key, Postmark Server API Token, or MailerSend API Token).
