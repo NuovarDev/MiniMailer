@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { connect } from "node:net";
 import { SMTPServer, SMTPServerOptions } from "smtp-server";
 import PostalMime from "postal-mime";
 import { formatAddress, formatAddressList, smtpError, log } from "./helpers/index.js";
@@ -19,11 +20,45 @@ function pickProvider(apiToken: string): Provider {
 
 const LISTEN_HOST = process.env.LISTEN_HOST ?? "0.0.0.0";
 const HEALTH_PORT = Number(process.env.HEALTH_PORT ?? "80");
+const SMTP_PORTS = [25, 2525, 587] as const;
+const HEALTH_CHECK_TIMEOUT_MS = 2000;
 
-const healthServer = createServer((req, res) => {
+function isPortOpen(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect(
+      { host, port, timeout: HEALTH_CHECK_TIMEOUT_MS },
+      () => {
+        socket.destroy();
+        resolve(true);
+      }
+    );
+    socket.on("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+const healthServer = createServer(async (req, res) => {
   if (req.method === "GET" && (req.url === "/health" || req.url === "/")) {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok" }));
+    const host = LISTEN_HOST === "0.0.0.0" ? "127.0.0.1" : LISTEN_HOST;
+    const results = await Promise.all(
+      SMTP_PORTS.map(async (port) => ({ port, up: await isPortOpen(host, port) }))
+    );
+    const smtp: Record<number, boolean> = {};
+    let allUp = true;
+    for (const { port, up } of results) {
+      smtp[port] = up;
+      if (!up) allUp = false;
+    }
+    const status = allUp ? "ok" : "degraded";
+    const statusCode = allUp ? 200 : 503;
+    res.writeHead(statusCode, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status, smtp }));
     return;
   }
   res.writeHead(404);
@@ -102,9 +137,7 @@ const serverOptions = {
   },
 } as SMTPServerOptions;
 
-const servers = [25, 2525, 587];
-
-for (const port of servers) {
+for (const port of SMTP_PORTS) {
   const server = new SMTPServer(serverOptions);
   server.listen(port, LISTEN_HOST, () => log.info({ host: LISTEN_HOST, port }, `Mini Mailer listening on SMTP port ${port}`));
   server.on("error", (err) => log.error({ err: err.message, port }, "SMTP error"));
