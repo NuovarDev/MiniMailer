@@ -39,17 +39,14 @@ type ZyntraEmailPreview = {
 
 const SMTP_HOST = mustEnv("SMTP_HOST");
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? "2525");
-const ZYNTRA_API_KEY = mustEnv("ZYNTRA_API_KEY");
+mustEnv("ZYNTRA_API_KEY");
 const ZYNTRA_TEAM_ID = mustEnv("ZYNTRA_TEAM_ID");
 const ZYNTRA_WAIT_TIMEOUT_MS = Number(process.env.ZYNTRA_WAIT_TIMEOUT_MS ?? "30000");
 const ZYNTRA_INITIAL_DELAY_MS = Number(process.env.ZYNTRA_INITIAL_DELAY_MS ?? "2000");
 const ZYNTRA_RETRY_DELAY_MS = Number(process.env.ZYNTRA_RETRY_DELAY_MS ?? "5000");
 const TEST_SUMMARY_FILE = process.env.TEST_SUMMARY_FILE;
 
-const zyntra = new ZyntraClient({
-  apiKey: ZYNTRA_API_KEY,
-  teamId: ZYNTRA_TEAM_ID,
-});
+const zyntra = new ZyntraClient();
 
 const providers: ProviderConfig[] = [
   {
@@ -197,14 +194,20 @@ async function getLastEmailWithTimeout(inbox: string, expectedSubject: string, t
 }
 
 async function getMatchingEmail(inbox: string, expectedSubject: string) {
-  const previews = (await zyntra.getEmails(inbox)) as ZyntraEmailPreview[];
+  const previews = (await debugZyntraCall("getEmails", { inbox, expectedSubject }, () =>
+    zyntra.getEmails(inbox)
+  )) as ZyntraEmailPreview[];
   const preview = previews[0];
 
   if (!preview) {
     throw new Error(`No email found yet for inbox "${inbox}"`);
   }
 
-  const email = (await zyntra.getEmailById(preview.uuid)) as ZyntraEmail;
+  const email = (await debugZyntraCall(
+    "getEmailById",
+    { inbox, expectedSubject, messageUuid: preview.uuid, previewSubject: preview.subject },
+    () => zyntra.getEmailById(preview.uuid)
+  )) as ZyntraEmail;
 
   try {
     if (preview.subject !== expectedSubject) {
@@ -213,7 +216,11 @@ async function getMatchingEmail(inbox: string, expectedSubject: string) {
 
     return email;
   } finally {
-    await zyntra.deleteEmail(preview.uuid);
+    await debugZyntraCall(
+      "deleteEmail",
+      { inbox, expectedSubject, messageUuid: preview.uuid, previewSubject: preview.subject },
+      () => zyntra.deleteEmail(preview.uuid)
+    );
   }
 }
 
@@ -230,6 +237,27 @@ function isRetryableZyntraError(error: unknown) {
 function formatErrorSuffix(error: unknown) {
   if (error == null) return "";
   return `; last error: ${String((error as { message?: string } | undefined)?.message ?? error)}`;
+}
+
+async function debugZyntraCall<T>(
+  operation: string,
+  context: Record<string, string>,
+  fn: () => Promise<T>
+) {
+  try {
+    return await fn();
+  } catch (error) {
+    const errorMessage = String((error as { message?: string; stack?: string } | undefined)?.message ?? error);
+    const contextText = Object.entries({
+      teamId: ZYNTRA_TEAM_ID,
+      ...context,
+    })
+      .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+      .join(" ");
+    console.log(`${color("yellow")}ZYNTRA DEBUG${color("reset")} ${operation} failed ${contextText}`);
+    console.log(`${color("yellow")}ZYNTRA DEBUG${color("reset")} error=${errorMessage}`);
+    throw new Error(`[${operation}] ${errorMessage}`);
+  }
 }
 
 function sleep(ms: number) {
@@ -273,12 +301,13 @@ function renderSummary(results: TestResult[]) {
   return { console: lines.join("\n"), markdown };
 }
 
-function color(name: "reset" | "red" | "green" | "cyan") {
+function color(name: "reset" | "red" | "green" | "cyan" | "yellow") {
   const codes = {
     reset: "\u001b[0m",
     red: "\u001b[31m",
     green: "\u001b[32m",
     cyan: "\u001b[36m",
+    yellow: "\u001b[33m",
   };
   return codes[name];
 }
