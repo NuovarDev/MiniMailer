@@ -1,6 +1,7 @@
 import { Socket } from "node:net";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
+import { request } from "undici";
 import { ZyntraClient } from "zyntramail-api";
 
 type ProviderName = "mailgun" | "postmark" | "mailersend";
@@ -41,6 +42,7 @@ const ZYNTRA_WAIT_TIMEOUT_MS = Number(process.env.ZYNTRA_WAIT_TIMEOUT_MS ?? "300
 const ZYNTRA_INITIAL_DELAY_MS = Number(process.env.ZYNTRA_INITIAL_DELAY_MS ?? "2000");
 const ZYNTRA_RETRY_DELAY_MS = Number(process.env.ZYNTRA_RETRY_DELAY_MS ?? "5000");
 const TEST_SUMMARY_FILE = process.env.TEST_SUMMARY_FILE;
+const ZYNTRA_API_BASE_URL = process.env.ZYNTRA_API_BASE_URL ?? "https://api.zyntra.app";
 
 const zyntra = new ZyntraClient({
   apiKey: ZYNTRA_API_KEY,
@@ -262,7 +264,40 @@ async function debugZyntraCall<T>(
       .join(" ");
     console.log(`${color("yellow")}ZYNTRA DEBUG${color("reset")} ${operation} failed ${contextText}`);
     console.log(`${color("yellow")}ZYNTRA DEBUG${color("reset")} error=${errorMessage}`);
+    if (context.inbox) {
+      await logDirectEmailsProbe(context.inbox);
+    }
     throw new Error(`[${operation}] ${errorMessage}`);
+  }
+}
+
+async function logDirectEmailsProbe(inbox: string) {
+  try {
+    const url = new URL("/emails", ZYNTRA_API_BASE_URL);
+    url.searchParams.set("inbox", inbox);
+
+    const res = await request(url, {
+      method: "GET",
+      headers: {
+        "X-API-Key": ZYNTRA_API_KEY,
+        Accept: "application/json",
+      },
+    });
+
+    const body = await res.body.text();
+    const headers = {
+      "content-type": res.headers["content-type"],
+      "x-request-id": res.headers["x-request-id"],
+      "cf-ray": res.headers["cf-ray"],
+    };
+
+    console.log(
+      `${color("yellow")}ZYNTRA PROBE${color("reset")} GET ${url.pathname}${url.search} status=${res.statusCode} headers=${JSON.stringify(headers)}`
+    );
+    console.log(`${color("yellow")}ZYNTRA PROBE${color("reset")} body=${truncate(body, 1000)}`);
+  } catch (error) {
+    const message = String((error as { message?: string } | undefined)?.message ?? error);
+    console.log(`${color("yellow")}ZYNTRA PROBE${color("reset")} failed inbox=${JSON.stringify(inbox)} error=${message}`);
   }
 }
 
@@ -336,6 +371,10 @@ function color(name: "reset" | "red" | "green" | "cyan" | "yellow") {
 function maskSecret(value: string) {
   if (value.length <= 8) return `${value.slice(0, 2)}***${value.slice(-2)}`;
   return `${value.slice(0, 4)}***${value.slice(-4)}`;
+}
+
+function truncate(value: string, maxLength: number) {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...<truncated>`;
 }
 
 async function sendSmtpMessage(input: {
