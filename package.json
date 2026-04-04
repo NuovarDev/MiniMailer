@@ -1,14 +1,31 @@
 {
-  "name": "MailRelay",
+  "name": "MiniMailer",
   "packageManager": "yarn@4.9.2",
   "type": "module",
+  "version": "1.1.0",
+  "description": "MiniMailer is a simple SMTP server that forwards mail over HTTP to Mailgun, Postmark, or MailerSend.",
+  "author": "Nuovar LLC",
+  "license": "MIT",
+  "homepage": "https://github.com/NuovarDev/MiniMailer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NuovarDev/MiniMailer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NuovarDev/MiniMailer/issues"
+  },
+  "keywords": [
+    "smtp",
+    "mail",
+    "relay"
+  ],
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
     "dev": "npx tsx src/index.ts",
     "test:e2e": "npx tsx scripts/test-e2e.ts",
-    "docker:build": "docker build -t mailrelay .",
-    "docker:run": "docker run -p 25:25 -p 2525:2525 -p 587:587 -p 80:80 mailrelay"
+    "docker:build": "docker build -t minimailer .",
+    "docker:run": "docker run -p 25:25 -p 2525:2525 -p 587:587 -p 80:80 minimailer"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
