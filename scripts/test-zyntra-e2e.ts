@@ -25,16 +25,12 @@ type TestResult = {
 };
 
 type ZyntraEmail = {
+  uuid?: string;
   subject?: string;
   body?: string;
   html?: string;
   textAsHtml?: string;
   to?: string | string[] | Array<{ email?: string; address?: string }>;
-};
-
-type ZyntraEmailPreview = {
-  uuid: string;
-  subject: string;
 };
 
 const SMTP_HOST = mustEnv("SMTP_HOST");
@@ -197,34 +193,40 @@ async function getLastEmailWithTimeout(inbox: string, expectedSubject: string, t
 }
 
 async function getMatchingEmail(inbox: string, expectedSubject: string) {
-  const previews = (await debugZyntraCall("getEmails", { inbox, expectedSubject }, () =>
-    zyntra.getEmails(inbox)
-  )) as ZyntraEmailPreview[];
-  const preview = previews[0];
+  const email = await debugGetLastEmail(inbox, expectedSubject);
+  const messageUuid = email.uuid;
 
-  if (!preview) {
-    throw new Error(`No email found yet for inbox "${inbox}"`);
-  }
-
-  const email = (await debugZyntraCall(
-    "getEmailById",
-    { inbox, expectedSubject, messageUuid: preview.uuid, previewSubject: preview.subject },
-    () => zyntra.getEmailById(preview.uuid)
-  )) as ZyntraEmail;
+  assert(messageUuid, `getLastEmail did not return a message UUID for inbox "${inbox}"`);
 
   try {
-    if (preview.subject !== expectedSubject) {
-      throw new Error(`Fetched different email subject "${preview.subject}" while waiting for "${expectedSubject}"`);
+    if (email.subject !== expectedSubject) {
+      throw new Error(`Fetched different email subject "${email.subject}" while waiting for "${expectedSubject}"`);
     }
 
     return email;
   } finally {
     await debugZyntraCall(
       "deleteEmail",
-      { inbox, expectedSubject, messageUuid: preview.uuid, previewSubject: preview.subject },
-      () => zyntra.deleteEmail(preview.uuid)
+      { inbox, expectedSubject, messageUuid, previewSubject: email.subject ?? "" },
+      () => zyntra.deleteEmail(messageUuid)
     );
   }
+}
+
+async function debugGetLastEmail(inbox: string, expectedSubject: string) {
+  const rawEmail = await debugZyntraCall(
+    "getLastEmail",
+    { inbox, expectedSubject },
+    async () => {
+      const client = zyntra as unknown as {
+        emailApi: { getLastEmail: (email: string) => Promise<{ data: Record<string, unknown> }> };
+      };
+      const res = await client.emailApi.getLastEmail(inbox);
+      return res.data;
+    }
+  );
+
+  return mapRawEmail(rawEmail);
 }
 
 function isRetryableZyntraError(error: unknown) {
@@ -281,6 +283,21 @@ function recipientIncludes(recipients: ZyntraEmail["to"], expected: string) {
 
 function emailBodyIncludes(email: ZyntraEmail, expected: string) {
   return [email.body, email.html, email.textAsHtml].some((value) => value?.includes(expected));
+}
+
+function mapRawEmail(raw: Record<string, unknown>): ZyntraEmail {
+  return {
+    uuid: stringOrUndefined(raw.uuid),
+    subject: stringOrUndefined(raw.subject),
+    body: stringOrUndefined(raw.body),
+    html: stringOrUndefined(raw.html),
+    textAsHtml: stringOrUndefined(raw.text_as_html),
+    to: stringOrUndefined(raw.to_address),
+  };
+}
+
+function stringOrUndefined(value: unknown) {
+  return typeof value === "string" ? value : undefined;
 }
 
 function renderSummary(results: TestResult[]) {
