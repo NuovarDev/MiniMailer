@@ -30,3 +30,8 @@ export function domainFromAuthUser(authUser: string): string {
   const u = authUser.trim();
   return u.includes("@") ? u.split("@").pop()! : u;
 }
+
+export function localPartFromAuthUser(authUser: string): string {
+  const u = authUser.trim();
+  return u.includes("@") ? u.split("@", 1)[0] : u;
+}

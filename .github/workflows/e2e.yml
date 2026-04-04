@@ -1,0 +1,75 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      LISTEN_HOST: 127.0.0.1
+      HEALTH_PORT: 8080
+      SMTP_PORTS: 2525
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: 2525
+      TEST_SUMMARY_FILE: /tmp/minimailer-e2e-summary.md
+      ZYNTRA_API_KEY: ${{ secrets.ZYNTRA_API_KEY }}
+      ZYNTRA_TEAM_ID: ${{ secrets.ZYNTRA_TEAM_ID }}
+      TEST_MAILGUN_USERNAME: ${{ secrets.TEST_MAILGUN_USERNAME }}
+      TEST_MAILGUN_API_KEY: ${{ secrets.TEST_MAILGUN_API_KEY }}
+      TEST_POSTMARK_USERNAME: ${{ secrets.TEST_POSTMARK_USERNAME }}
+      TEST_POSTMARK_API_KEY: ${{ secrets.TEST_POSTMARK_API_KEY }}
+      TEST_POSTMARK_FROM: ${{ secrets.TEST_POSTMARK_FROM }}
+      TEST_MAILERSEND_USERNAME: ${{ secrets.TEST_MAILERSEND_USERNAME }}
+      TEST_MAILERSEND_API_KEY: ${{ secrets.TEST_MAILERSEND_API_KEY }}
+      TEST_MAILERSEND_FROM: ${{ secrets.TEST_MAILERSEND_FROM }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start Mini Mailer
+        run: npm run dev > /tmp/minimailer.log 2>&1 &
+
+      - name: Wait for health check
+        run: node -e "const url='http://127.0.0.1:8080/health'; const deadline=Date.now()+30000; (async function poll(){ while(Date.now()<deadline){ try { const res=await fetch(url); if(res.ok){ process.exit(0); } } catch {} await new Promise(r=>setTimeout(r,1000)); } process.exit(1); })()"
+
+      - name: Run E2E test
+        run: npm run test:e2e
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f "$TEST_SUMMARY_FILE" ]; then
+            cat "$TEST_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Comment PR with E2E summary
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = process.env.TEST_SUMMARY_FILE;
+            const body = fs.existsSync(path)
+              ? fs.readFileSync(path, 'utf8')
+              : '## Mini Mailer E2E Summary\n\nNo summary file was generated.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

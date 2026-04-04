@@ -1,12 +1,25 @@
 import FormData from "form-data";
-import { formatAddressList, domainFromAuthUser } from "../helpers/index.js";
+import { formatAddressList, domainFromAuthUser, localPartFromAuthUser } from "../helpers/index.js";
 import { request } from "undici";
 import type { Email } from "postal-mime";
 
+export const MAILGUN_API_KEY_REGEX = /^[a-f0-9]{32}-[a-f0-9]{8}-[a-f0-9]{8}$/i;
+export const MAILGUN_USERNAME_REGEX = /^mailgun(?:-eu)?$/i;
+
+export function isMailgunProvider(usernameLocalPart: string, apiToken: string): boolean {
+  return MAILGUN_USERNAME_REGEX.test(usernameLocalPart) || MAILGUN_API_KEY_REGEX.test(apiToken);
+}
+
+export function getMailgunHost(authUser: string): string {
+  const usernameLocalPart = localPartFromAuthUser(authUser);
+  if (/^mailgun-eu$/i.test(usernameLocalPart)) return "api.eu.mailgun.net";
+  if (/^mailgun$/i.test(usernameLocalPart)) return "api.mailgun.net";
+  return process.env.MAILGUN_EU === "1" ? "api.eu.mailgun.net" : "api.mailgun.net";
+}
+
 export async function sendViaMailgun(rawMime: Buffer, parsed: Email, authUser: string, key: string) {
   const domain = domainFromAuthUser(authUser);
-
-  const host = process.env.MAILGUN_EU === "1" ? "api.eu.mailgun.net" : "api.mailgun.net";
+  const host = getMailgunHost(authUser);
   const url = `https://${host}/v3/${encodeURIComponent(domain)}/messages.mime`;
 
   const to = formatAddressList(parsed.to).trim();

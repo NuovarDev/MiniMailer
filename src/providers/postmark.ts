@@ -2,6 +2,13 @@ import { addressToMailbox } from "../helpers/index.js";
 import PostalMime from "postal-mime";
 import { request } from "undici";
 
+export const POSTMARK_API_KEY_REGEX = /^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/i;
+export const POSTMARK_USERNAME_REGEX = /^postmark$/i;
+
+export function isPostmarkProvider(usernameLocalPart: string, apiToken: string): boolean {
+  return POSTMARK_USERNAME_REGEX.test(usernameLocalPart) || POSTMARK_API_KEY_REGEX.test(apiToken);
+}
+
 export async function sendViaPostmark(rawMime: Buffer, token: string) {
   const url = "https://api.postmarkapp.com/email";
 

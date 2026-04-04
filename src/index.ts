@@ -2,26 +2,35 @@ import { createServer } from "node:http";
 import { connect } from "node:net";
 import { SMTPServer, SMTPServerOptions } from "smtp-server";
 import PostalMime from "postal-mime";
-import { formatAddress, formatAddressList, smtpError, log } from "./helpers/index.js";
-import { sendViaPostmark } from "./providers/postmark.js";
-import { sendViaMailerSend } from "./providers/mailersend.js";
-import { sendViaMailgun } from "./providers/mailgun.js";
+import { formatAddress, formatAddressList, smtpError, log, localPartFromAuthUser } from "./helpers/index.js";
+import { sendViaPostmark, isPostmarkProvider } from "./providers/postmark.js";
+import { sendViaMailerSend, isMailerSendProvider } from "./providers/mailersend.js";
+import { sendViaMailgun, isMailgunProvider } from "./providers/mailgun.js";
 
 type Provider = "mailersend" | "postmark" | "mailgun";
 
-function pickProvider(apiToken: string): Provider {
-  const mailgunRex = new RegExp(`^[a-f0-9]{32}-[a-f0-9]{8}-[a-f0-9]{8}$`);
-  const postmarkRex = new RegExp(`^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$`);
-  if (apiToken.startsWith("mlsn.")) return "mailersend";
-  if (postmarkRex.test(apiToken)) return "postmark";
-  if (mailgunRex.test(apiToken)) return "mailgun";
-  throw new Error("Invalid API token");
+function pickProvider(authUser: string, apiToken: string): Provider {
+  const usernameLocalPart = localPartFromAuthUser(authUser);
+  if (isMailerSendProvider(usernameLocalPart, "")) return "mailersend";
+  if (isPostmarkProvider(usernameLocalPart, "")) return "postmark";
+  if (isMailgunProvider(usernameLocalPart, "")) return "mailgun";
+  if (isMailerSendProvider("", apiToken)) return "mailersend";
+  if (isPostmarkProvider("", apiToken)) return "postmark";
+  if (isMailgunProvider("", apiToken)) return "mailgun";
+  throw new Error("Could not detect provider from username or API token");
 }
 
 const LISTEN_HOST = process.env.LISTEN_HOST ?? "0.0.0.0";
 const HEALTH_PORT = Number(process.env.HEALTH_PORT ?? "80");
-const SMTP_PORTS = [25, 2525, 587] as const;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
+const SMTP_PORTS = (process.env.SMTP_PORTS ?? "25,2525,587")
+  .split(",")
+  .map((port) => Number(port.trim()))
+  .filter((port) => Number.isInteger(port) && port > 0 && port <= 65535);
+
+if (SMTP_PORTS.length === 0) {
+  throw new Error("SMTP_PORTS must contain at least one valid port");
+}
 
 function isPortOpen(host: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -87,7 +96,7 @@ const serverOptions = {
             ? sessionUser
             : "unknown";
       const apiToken = typeof sessionUser === "object" && sessionUser != null ? sessionUser.password : undefined;
-      const provider = pickProvider(String(apiToken));
+      const provider = pickProvider(authUser, String(apiToken));
 
       const chunks: Buffer[] = [];
       stream.on("data", (c: Buffer) => chunks.push(c));

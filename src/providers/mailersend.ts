@@ -2,6 +2,13 @@ import { addressToMailbox } from "../helpers/index.js";
 import PostalMime from "postal-mime";
 import { request } from "undici";
 
+export const MAILERSEND_API_KEY_REGEX = /^mlsn\./i;
+export const MAILERSEND_USERNAME_REGEX = /^mailersend$/i;
+
+export function isMailerSendProvider(usernameLocalPart: string, apiToken: string): boolean {
+  return MAILERSEND_USERNAME_REGEX.test(usernameLocalPart) || MAILERSEND_API_KEY_REGEX.test(apiToken);
+}
+
 export async function sendViaMailerSend(rawMime: Buffer, token: string) {
   const url = "https://api.mailersend.com/v1/email";
 
