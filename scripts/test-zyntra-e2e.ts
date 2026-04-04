@@ -39,14 +39,17 @@ type ZyntraEmailPreview = {
 
 const SMTP_HOST = mustEnv("SMTP_HOST");
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? "2525");
-mustEnv("ZYNTRA_API_KEY");
+const ZYNTRA_API_KEY = mustEnv("ZYNTRA_API_KEY");
 const ZYNTRA_TEAM_ID = mustEnv("ZYNTRA_TEAM_ID");
 const ZYNTRA_WAIT_TIMEOUT_MS = Number(process.env.ZYNTRA_WAIT_TIMEOUT_MS ?? "30000");
 const ZYNTRA_INITIAL_DELAY_MS = Number(process.env.ZYNTRA_INITIAL_DELAY_MS ?? "2000");
 const ZYNTRA_RETRY_DELAY_MS = Number(process.env.ZYNTRA_RETRY_DELAY_MS ?? "5000");
 const TEST_SUMMARY_FILE = process.env.TEST_SUMMARY_FILE;
 
-const zyntra = new ZyntraClient();
+const zyntra = new ZyntraClient({
+  apiKey: ZYNTRA_API_KEY,
+  teamId: ZYNTRA_TEAM_ID,
+});
 
 const providers: ProviderConfig[] = [
   {
@@ -54,16 +57,16 @@ const providers: ProviderConfig[] = [
     username: mustEnv("TEST_MAILGUN_USERNAME"),
     apiKey: mustEnv("TEST_MAILGUN_API_KEY"),
   },
-  {
-    name: "postmark",
-    username: mustEnv("TEST_POSTMARK_USERNAME"),
-    apiKey: mustEnv("TEST_POSTMARK_API_KEY"),
-  },
-  {
-    name: "mailersend",
-    username: mustEnv("TEST_MAILERSEND_USERNAME"),
-    apiKey: mustEnv("TEST_MAILERSEND_API_KEY"),
-  },
+  // {
+  //   name: "postmark",
+  //   username: mustEnv("TEST_POSTMARK_USERNAME"),
+  //   apiKey: mustEnv("TEST_POSTMARK_API_KEY"),
+  // },
+  // {
+  //   name: "mailersend",
+  //   username: mustEnv("TEST_MAILERSEND_USERNAME"),
+  //   apiKey: mustEnv("TEST_MAILERSEND_API_KEY"),
+  // },
 ];
 
 async function main() {
@@ -249,7 +252,8 @@ async function debugZyntraCall<T>(
   } catch (error) {
     const errorMessage = String((error as { message?: string; stack?: string } | undefined)?.message ?? error);
     const contextText = Object.entries({
-      teamId: ZYNTRA_TEAM_ID,
+      apiKeyFingerprint: maskSecret(ZYNTRA_API_KEY),
+      apiKeyLength: String(ZYNTRA_API_KEY.length),
       ...context,
     })
       .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
@@ -310,6 +314,11 @@ function color(name: "reset" | "red" | "green" | "cyan" | "yellow") {
     yellow: "\u001b[33m",
   };
   return codes[name];
+}
+
+function maskSecret(value: string) {
+  if (value.length <= 8) return `${value.slice(0, 2)}***${value.slice(-2)}`;
+  return `${value.slice(0, 4)}***${value.slice(-4)}`;
 }
 
 async function sendSmtpMessage(input: {
