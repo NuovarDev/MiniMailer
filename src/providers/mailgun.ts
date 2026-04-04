@@ -6,7 +6,8 @@ import type { Email } from "postal-mime";
 export async function sendViaMailgun(rawMime: Buffer, parsed: Email, authUser: string, key: string) {
   const domain = domainFromAuthUser(authUser);
 
-  const url = `https://api.mailgun.net/v3/${encodeURIComponent(domain)}/messages.mime`;
+  const host = process.env.MAILGUN_EU === "1" ? "api.eu.mailgun.net" : "api.mailgun.net";
+  const url = `https://${host}/v3/${encodeURIComponent(domain)}/messages.mime`;
 
   const to = formatAddressList(parsed.to).trim();
   if (!to) throw new Error("Could not determine 'To' header for Mailgun");
