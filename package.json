@@ -6,16 +6,17 @@
     "build": "npx tsc",
     "start": "node dist/index.js",
     "dev": "npx tsx src/index.ts",
-    "test:e2e": "npx tsx scripts/test-zyntra-e2e.ts",
+    "test:e2e": "npx tsx scripts/test-e2e.ts",
     "docker:build": "docker build -t mailrelay .",
     "docker:run": "docker run -p 25:25 -p 2525:2525 -p 587:587 -p 80:80 mailrelay"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
     "@types/smtp-server": "^3",
+    "dotenv": "^17.4.0",
+    "mailslurp-client": "^17.2.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.3",
-    "zyntramail-api": "^0.1.1"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "form-data": "^4.0.0",

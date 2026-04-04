@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer } from "node:http";
 import { connect } from "node:net";
 import { SMTPServer, SMTPServerOptions } from "smtp-server";

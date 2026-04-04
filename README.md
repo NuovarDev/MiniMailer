@@ -100,7 +100,7 @@ Optional env vars (for logging and listen address):
 
 ## End-to-end test
 
-Run the Zyntra end-to-end suite with:
+Run the MailSlurp end-to-end suite with:
 
 ```bash
 npm run test:e2e
@@ -109,8 +109,8 @@ npm run test:e2e
 Required env vars:
 
 - `SMTP_HOST` – Mini Mailer host to test against
-- `ZYNTRA_API_KEY` – Zyntra API key
-- `ZYNTRA_TEAM_ID` – Zyntra team ID
+- `SMTP_PORT` – Mini Mailer SMTP port, defaults to `2525`
+- `MAILSLURP_API_KEY` – MailSlurp API key
 - `TEST_MAILGUN_USERNAME` – SMTP username for Mailgun, e.g. `mailgun@mg.example.com`
 - `TEST_MAILGUN_API_KEY` – Mailgun API key
 - `TEST_POSTMARK_USERNAME` – SMTP username for Postmark, e.g. `postmark@test.example.com`

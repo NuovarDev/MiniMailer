@@ -17,8 +17,7 @@ jobs:
       SMTP_HOST: 127.0.0.1
       SMTP_PORT: 2525
       TEST_SUMMARY_FILE: /tmp/minimailer-e2e-summary.md
-      ZYNTRA_API_KEY: ${{ secrets.ZYNTRA_API_KEY }}
-      ZYNTRA_TEAM_ID: ${{ secrets.ZYNTRA_TEAM_ID }}
+      MAILSLURP_API_KEY: ${{ secrets.MAILSLURP_API_KEY }}
       TEST_MAILGUN_USERNAME: ${{ secrets.TEST_MAILGUN_USERNAME }}
       TEST_MAILGUN_API_KEY: ${{ secrets.TEST_MAILGUN_API_KEY }}
       TEST_POSTMARK_USERNAME: ${{ secrets.TEST_POSTMARK_USERNAME }}
