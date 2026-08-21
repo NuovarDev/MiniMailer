@@ -1,6 +1,6 @@
 # Mini Mailer
 
-Mini Mailer is a simple SMTP server that forwards mail over HTTP to Mailgun, Postmark, or MailerSend. For use as an SMTP gateway on platforms (e.g. [Railway](https://railway.app)) that restrict outbound SMTP ports.
+Mini Mailer is a simple SMTP server that forwards mail over HTTP to Mailgun, Postmark, MailerSend, or SendGrid. For use as an SMTP gateway on platforms (e.g. [Railway](https://railway.app)) that restrict outbound SMTP ports.
 
 Mini Mailer does not support attachments and is designed to run on an internal network only (e.g. `mini-mailer.railway.internal`), as it does not use TLS.
 
@@ -27,8 +27,8 @@ Mini Mailer does not support attachments and is designed to run on an internal n
 
 - **AUTH is required**: clients must send a username and password (e.g. SMTP AUTH LOGIN/PLAIN).
 - The **password is used as the API key/token** for the chosen provider (see below). So you configure your app or SMTP client with:
-  - **Username**: e.g. `mailgun@mg.yourdomain.com`, `mailgun-eu@mg.yourdomain.com`, `mailersend@yourdomain.com`, or `postmark@yourdomain.com`. The local part can be used to force the provider; for Mailgun the domain is also used as the sending domain.
-  - **Password**: the API key or server token for that provider (Mailgun Sending Key, Postmark Server API Token, or MailerSend API Token).
+  - **Username**: e.g. `mailgun@mg.yourdomain.com`, `mailgun-eu@mg.yourdomain.com`, `mailersend@yourdomain.com`, `postmark@yourdomain.com`, `sendgrid@yourdomain.com`, or `sendgrid-eu@yourdomain.com`. The local part can be used to force the provider; for Mailgun the domain is also used as the sending domain.
+  - **Password**: the API key or server token for that provider (Mailgun Sending Key, Postmark Server API Token, MailerSend API Token, or SendGrid API Key).
 
 That way you can use different credentials per domain or app by using different SMTP usernames and passwords.
 
@@ -45,6 +45,8 @@ Supported username local parts:
 - `postmark@...` -> Postmark
 - `mailgun@...` -> Mailgun US API
 - `mailgun-eu@...` -> Mailgun EU API
+- `sendgrid@...` -> SendGrid global API
+- `sendgrid-eu@...` -> SendGrid EU API
 
 When Mailgun is used, the domain in the username must match the domain the API key belongs to.
 
@@ -55,7 +57,12 @@ If Mailgun is detected from the API key instead of the username, Mini Mailer use
 - `MAILGUN_EU=1` uses `https://api.eu.mailgun.net`
 - unset or any other value uses `https://api.mailgun.net`
 
-For Postmark and MailerSend, the domain part of the username is ignored.
+If SendGrid is detected from the API key instead of the username, Mini Mailer uses `SENDGRID_EU` to choose the SendGrid region:
+
+- `SENDGRID_EU=1` uses `https://api.eu.sendgrid.com`
+- unset or any other value uses `https://api.sendgrid.com`
+
+For Postmark, MailerSend, and SendGrid, the domain part of the username is ignored.
 
 ## Example client configuration
 
@@ -63,8 +70,8 @@ Configure your app or SMTP client to use the relay like this:
 
 - **Host**: your Mini Mailer host (e.g. `mini-mailer.railway.internal`).
 - **Port**: `25`, `2525`, or `587`.
-- **Username**: e.g. `mailgun@mg.yourdomain.com`, `mailgun-eu@mg.yourdomain.com`, `mailersend@yourdomain.com`, or `postmark@yourdomain.com`.
-- **Password**: the corresponding provider API key or token (Mailgun Sending Key, Postmark Server API Token, or MailerSend API Token).
+- **Username**: e.g. `mailgun@mg.yourdomain.com`, `mailgun-eu@mg.yourdomain.com`, `mailersend@yourdomain.com`, `postmark@yourdomain.com`, or `sendgrid@yourdomain.com`.
+- **Password**: the corresponding provider API key or token (Mailgun Sending Key, Postmark Server API Token, MailerSend API Token, or SendGrid API Key).
 - **Encryption**: none
 
 ## Health check
@@ -97,6 +104,7 @@ Optional env vars (for logging and listen address):
 - `SMTP_PORTS` – comma-separated SMTP listen ports, defaults to `25,2525,587`
 - `DEFAULT_API_KEY` – when set, allows unauthenticated SMTP clients and uses this API key/token as the provider credential.
 - `MAILGUN_EU` – set to `1` to use Mailgun's EU API when Mailgun is selected by API key rather than by a `mailgun` / `mailgun-eu` username.
+- `SENDGRID_EU` – set to `1` to use SendGrid's EU API when SendGrid is selected by API key rather than by a `sendgrid` / `sendgrid-eu` username.
 
 ## End-to-end test
 
@@ -119,3 +127,6 @@ Required env vars:
 - `TEST_MAILERSEND_USERNAME` – SMTP username for MailerSend, e.g. `mailersend@test.example.com`
 - `TEST_MAILERSEND_API_KEY` – MailerSend API key
 - `TEST_MAILERSEND_FROM` – verified MailerSend sender address
+- `TEST_SENDGRID_USERNAME` – SMTP username for SendGrid, e.g. `sendgrid@test.example.com`
+- `TEST_SENDGRID_API_KEY` – SendGrid API key
+- `TEST_SENDGRID_FROM` – verified SendGrid sender address

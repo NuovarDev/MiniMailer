@@ -11,7 +11,7 @@ import {
   type MatchOptions,
 } from "mailslurp-client";
 
-type ProviderName = "mailgun" | "postmark" | "mailersend";
+type ProviderName = "mailgun" | "postmark" | "mailersend" | "sendgrid";
 
 type ProviderConfig = {
   name: ProviderName;
@@ -55,6 +55,11 @@ const providers: ProviderConfig[] = [
     name: "mailersend",
     username: mustEnv("TEST_MAILERSEND_USERNAME"),
     apiKey: mustEnv("TEST_MAILERSEND_API_KEY"),
+  },
+  {
+    name: "sendgrid",
+    username: mustEnv("TEST_SENDGRID_USERNAME"),
+    apiKey: mustEnv("TEST_SENDGRID_API_KEY"),
   },
 ];
 
