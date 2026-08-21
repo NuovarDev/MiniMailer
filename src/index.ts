@@ -7,17 +7,20 @@ import { formatAddress, formatAddressList, smtpError, log, localPartFromAuthUser
 import { sendViaPostmark, isPostmarkProvider } from "./providers/postmark.js";
 import { sendViaMailerSend, isMailerSendProvider } from "./providers/mailersend.js";
 import { sendViaMailgun, isMailgunProvider } from "./providers/mailgun.js";
+import { sendViaSendGrid, isSendGridProvider } from "./providers/sendgrid.js";
 
-type Provider = "mailersend" | "postmark" | "mailgun";
+type Provider = "mailersend" | "postmark" | "mailgun" | "sendgrid";
 
 function pickProvider(authUser: string, apiToken: string): Provider {
   const usernameLocalPart = localPartFromAuthUser(authUser);
   if (isMailerSendProvider(usernameLocalPart, "")) return "mailersend";
   if (isPostmarkProvider(usernameLocalPart, "")) return "postmark";
   if (isMailgunProvider(usernameLocalPart, "")) return "mailgun";
+  if (isSendGridProvider(usernameLocalPart, "")) return "sendgrid";
   if (isMailerSendProvider("", apiToken)) return "mailersend";
   if (isPostmarkProvider("", apiToken)) return "postmark";
   if (isMailgunProvider("", apiToken)) return "mailgun";
+  if (isSendGridProvider("", apiToken)) return "sendgrid";
   throw new Error("Could not detect provider from username or API token");
 }
 
@@ -127,6 +130,7 @@ const serverOptions = {
           let result: any;
           if (provider === "postmark") result = await sendViaPostmark(rawMime, apiToken);
           else if (provider === "mailersend") result = await sendViaMailerSend(rawMime, apiToken);
+          else if (provider === "sendgrid") result = await sendViaSendGrid(parsed, authUser, apiToken);
           else result = await sendViaMailgun(rawMime, parsed, authUser, apiToken);
 
           log.info({ provider, result, port: session.localPort }, "forwarded message");
