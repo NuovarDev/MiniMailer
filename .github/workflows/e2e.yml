@@ -26,12 +26,15 @@ jobs:
       TEST_MAILERSEND_USERNAME: ${{ secrets.TEST_MAILERSEND_USERNAME }}
       TEST_MAILERSEND_API_KEY: ${{ secrets.TEST_MAILERSEND_API_KEY }}
       TEST_MAILERSEND_FROM: ${{ secrets.TEST_MAILERSEND_FROM }}
+      TEST_SENDGRID_USERNAME: ${{ secrets.TEST_SENDGRID_USERNAME }}
+      TEST_SENDGRID_API_KEY: ${{ secrets.TEST_SENDGRID_API_KEY }}
+      TEST_SENDGRID_FROM: ${{ secrets.TEST_SENDGRID_FROM }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
